@@ -1,8 +1,19 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from functools import wraps
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+import json
+
+
+# Загружаем переменные окружения
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey_change_in_production"
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey_change_in_production")
+
+# Инициализация OpenAI клиента
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Расширенные данные университетов
 universities = [
@@ -417,7 +428,7 @@ def get_user_data(username):
     """Получить данные пользователя, создать если не существует"""
     if username not in users:
         users[username] = {
-            "password": None,  # Пароль не сохраняем для восстановленных пользователей
+            "password": None,
             "favourites": [],
             "compare": []
         }
@@ -429,12 +440,12 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
             return redirect(url_for('login'))
-        # Убедимся, что пользователь существует в системе
         get_user_data(session['user'])
         return f(*args, **kwargs)
     return decorated_function
 
-# Главная страница
+# ==================== МАРШРУТЫ ====================
+
 @app.route("/")
 def index():
     return render_template(
@@ -443,7 +454,6 @@ def index():
         current_user=session.get("user")
     )
 
-# Каталог университетов
 @app.route("/universities")
 def universities_page():
     return render_template(
@@ -452,7 +462,6 @@ def universities_page():
         current_user=session.get("user")
     )
 
-# Избранное
 @app.route("/favorites")
 @login_required
 def favorites():
@@ -466,7 +475,6 @@ def favorites():
         current_user=username
     )
 
-# Сравнение
 @app.route("/compare")
 @login_required
 def compare():
@@ -480,7 +488,6 @@ def compare():
         current_user=username
     )
 
-# Помощник
 @app.route("/assistant")
 def assistant():
     return render_template(
@@ -489,10 +496,8 @@ def assistant():
         current_user=session.get("user")
     )
 
-# Вход
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # Если уже авторизован, перенаправляем на главную
     if 'user' in session:
         return redirect(url_for('index'))
     
@@ -500,7 +505,6 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         
-        # Проверка учетных данных
         if username in users and users[username].get("password") == password:
             session["user"] = username
             return redirect(url_for('index'))
@@ -509,10 +513,8 @@ def login():
     
     return render_template("login.html", error=None)
 
-# Регистрация
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # Если уже авторизован, перенаправляем на главную
     if 'user' in session:
         return redirect(url_for('index'))
     
@@ -520,7 +522,6 @@ def register():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         
-        # Валидация
         if not username or not password:
             return render_template("register.html", error="Заполните все поля")
         
@@ -530,11 +531,9 @@ def register():
         if len(password) < 3:
             return render_template("register.html", error="Пароль должен содержать минимум 3 символа")
         
-        # Проверка существования пользователя
         if username in users and users[username].get("password"):
             return render_template("register.html", error="Пользователь уже существует")
         
-        # Создание нового пользователя
         users[username] = {
             "password": password,
             "favourites": [],
@@ -546,7 +545,13 @@ def register():
     
     return render_template("register.html", error=None)
 
-# API для избранного
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect(url_for('index'))
+
+# ==================== API ENDPOINTS ====================
+
 @app.route("/api/favourite", methods=["POST"])
 def api_favourite():
     username = session.get("user")
@@ -558,11 +563,9 @@ def api_favourite():
         data = request.json
         univ_id = int(data.get("university_id"))
         
-        # Проверка существования университета
         if not any(u["id"] == univ_id for u in universities):
             return jsonify({"error": "Университет не найден"}), 404
         
-        # Добавление или удаление из избранного
         if univ_id in user_data["favourites"]:
             user_data["favourites"].remove(univ_id)
             status = "removed"
@@ -575,7 +578,6 @@ def api_favourite():
     except (ValueError, TypeError, KeyError):
         return jsonify({"error": "Неверный запрос"}), 400
 
-# API для сравнения
 @app.route("/api/compare", methods=["POST"])
 def api_compare():
     username = session.get("user")
@@ -587,16 +589,13 @@ def api_compare():
         data = request.json
         univ_id = int(data.get("university_id"))
         
-        # Проверка существования университета
         if not any(u["id"] == univ_id for u in universities):
             return jsonify({"error": "Университет не найден"}), 404
         
-        # Добавление или удаление из сравнения
         if univ_id in user_data["compare"]:
             user_data["compare"].remove(univ_id)
             status = "removed"
         else:
-            # Ограничение на количество университетов для сравнения
             if len(user_data["compare"]) >= 5:
                 return jsonify({"error": "Максимум 5 университетов для сравнения"}), 400
             user_data["compare"].append(univ_id)
@@ -607,30 +606,44 @@ def api_compare():
     except (ValueError, TypeError, KeyError):
         return jsonify({"error": "Неверный запрос"}), 400
 
-# Выход
-@app.route("/logout")
-def logout():
-    session.pop("user", None)
-    return redirect(url_for('index'))
+# ==================== OPENAI CHATBOT ENDPOINT ====================
+
+@app.route('/ask', methods=['POST'])
+@app.route("/ask", methods=["POST"])
+def ask():
+    try:
+        data = request.get_json()
+        messages = data.get("messages", [])
+        universities_context = json.loads(data.get("universities_context", "[]"))
+        
+        # Здесь вызываем логику чат-бота
+        response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+        )
+        reply = response.choices[0].message.content
+        
+        return jsonify({"success": True, "reply": reply})
+    except Exception as e:
+        print("Ошибка:", e)
+        return jsonify({"success": False, "reply": "Извините, произошла ошибка на сервере. Попробуйте позже."})
 
 # Обработчик ошибки 404
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404 if False else redirect(url_for('index'))
+    return redirect(url_for('index'))
 
-# API для получения состояния пользователя (избранное и сравнение)
-@app.route("/api/user-states", methods=["GET"])
-def api_user_states():
-    """Возвращает списки избранного и сравнения для текущего пользователя"""
-    username = session.get("user")
-    if not username:
-        return jsonify({"favourites": [], "compare": []})
-    
-    user_data = get_user_data(username)
-    return jsonify({
-        "favourites": user_data.get("favourites", []),
-        "compare": user_data.get("compare", [])
-    })
+# ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
 
 if __name__ == "__main__":
+    # Проверяем наличие API ключа при запуске
+    if not os.getenv("OPENAI_API_KEY"):
+        print("⚠  ВНИМАНИЕ: OPENAI_API_KEY не найден в переменных окружения!")
+        print("📝 Создайте файл .env и добавьте:")
+        print("   OPENAI_API_KEY=your_api_key_here")
+        print("   SECRET_KEY=your_secret_key_here")
+    else:
+        print("✅ OpenAI API ключ загружен успешно")
+    
     app.run(debug=True, host="0.0.0.0", port=5000)
+

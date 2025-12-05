@@ -1,219 +1,158 @@
 {% extends "base.html" %}
 {% block title %}Помощник{% endblock %}
 {% block page_title %}Интеллектуальный помощник{% endblock %}
-{% block page_sub %}Получите персонализированные рекомендации по выбору университета и подготовке к поступлению{%
-endblock %}
+{% block page_sub %}Получите персонализированные рекомендации по выбору университета и подготовке к поступлению{% endblock %}
 
 {% block content %}
 <style>
-    .assistant-container {
-        max-width: 900px;
-        margin: 0 auto;
-    }
+/* ===== Контейнер ===== */
+.assistant-container { max-width: 900px; margin: 0 auto; padding: 20px; }
 
-    .intro-card {
-        background: linear-gradient(135deg, #ffffff, #e8f5e9);
-        padding: 32px;
-        border-radius: 16px;
-        margin-bottom: 32px;
-        text-align: center;
-        box-shadow: 0 4px 16px var(--card-shadow);
-    }
+/* ===== Чат ===== */
+.chatbot-container {
+    background: linear-gradient(145deg, #f0fdf4, #e8f5e9);
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
 
-    .intro-card h2 {
-        color: var(--green1);
-        margin-bottom: 16px;
-    }
+.chatbot-header {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #1b5e20;
+    margin-bottom: 16px;
+}
 
-    .info-badge {
-        display: inline-block;
-        padding: 8px 16px;
-        background-color: var(--green3);
-        color: var(--green-dark);
-        border-radius: 20px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
+.chatbot-messages {
+    flex: 1;
+    max-height: 400px;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #d0d0d0;
+    scroll-behavior: smooth;
+}
 
-    .university-list {
-        display: grid;
-        gap: 16px;
-    }
+.chatbot-message {
+    display: inline-block;
+    margin: 6px 0;
+    padding: 10px 14px;
+    border-radius: 16px;
+    max-width: 75%;
+    word-wrap: break-word;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    animation: fadeIn 0.3s ease forwards;
+}
 
-    .university-item {
-        background: #fff;
-        padding: 20px;
-        border-radius: 12px;
-        border-left: 4px solid var(--green1);
-        box-shadow: 0 2px 8px var(--card-shadow);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: all 0.3s ease;
-    }
+.chatbot-message.user {
+    background: #1b5e20;
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
 
-    .university-item:hover {
-        transform: translateX(8px);
-        box-shadow: 0 4px 16px var(--card-shadow-hover);
-    }
+.chatbot-message.bot {
+    background: #d9f0e1;
+    color: #1b5e20;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
 
-    .university-name {
-        font-weight: 600;
-        color: var(--green-dark);
-        font-size: 1.1rem;
-    }
+/* ===== Ввод ===== */
+.chatbot-input-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
 
-    .university-city {
-        color: var(--muted);
-        font-size: 0.9rem;
-        margin-top: 4px;
-    }
+.chatbot-input-container input {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 20px;
+    border: 1px solid #c0c0c0;
+    outline: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
 
-    /* ------------------------- НОВЫЙ СТИЛЬ КНОПОК ------------------------- */
+.chatbot-input-container input:focus {
+    border-color: #1b5e20;
+    box-shadow: 0 0 0 2px rgba(27, 94, 32, 0.2);
+}
 
-    .btn {
-        background: var(--green1);
-        color: white;
-        border: none;
-        padding: 12px 18px;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 0.95rem;
-        transition: 0.2s;
-        width: 170px;
-        /* фиксированная ширина для ровных кнопок */
-        text-align: center;
-        /* ровное выравнивание */
-        font-weight: 600;
-    }
+.chatbot-input-container button {
+    background: #1b5e20;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
 
-    .btn:hover {
-        background: var(--green-dark);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    }
+.chatbot-input-container button:hover {
+    background: #145a18;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
 
-    /* ------------------------- МОДАЛКА ------------------------- */
+/* ===== Анимация сообщений ===== */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
 
-    .advice-modal {
-        display: none;
-        position: fixed;
-        z-index: 2000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.6);
-    }
+/* ===== Прокрутка ===== */
+.chatbot-messages::-webkit-scrollbar {
+    width: 8px;
+}
+.chatbot-messages::-webkit-scrollbar-thumb {
+    background-color: #a5d6a7;
+    border-radius: 4px;
+}
+.chatbot-messages::-webkit-scrollbar-track {
+    background: #f0fdf4;
+}
 
-    .advice-content {
-        background: #fff;
-        margin: 5% auto;
-        padding: 32px;
-        border-radius: 16px;
-        width: 90%;
-        max-width: 700px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        max-height: 80vh;
-        overflow-y: auto;
-    }
+/* ===== Университеты и советы ===== */
+.university-list { display: grid; gap: 16px; }
+.university-item {
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    border-left: 4px solid #1b5e20;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+.university-item:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.university-name { font-weight: 600; color: #145a18; font-size: 1.1rem; }
+.university-city { color: #555; font-size: 0.9rem; margin-top: 4px; }
+.btn { background: #1b5e20; color: white; border: none; padding: 12px 20px; border-radius: 16px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s ease; }
+.btn:hover { background: #145a18; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
-    .close {
-        color: var(--muted);
-        transition: color 0.2s ease;
-    }
-
-    .close:hover {
-        color: var(--text-dark);
-    }
-
-    /* ------------------------- АККОРДЕОН ------------------------- */
-
-    .advice-section {
-        margin: 16px 0;
-        padding: 0;
-        background: #fff;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        overflow: hidden;
-        transition: box-shadow 0.3s ease;
-    }
-
-    .advice-section:last-child {
-        border: none !important;
-        margin-top: 24px;
-    }
-
-    .advice-section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 15px 20px;
-        background: #f5f5f5;
-        color: var(--green-dark);
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s ease;
-        border-left: 4px solid var(--green1);
-    }
-
-    .advice-section-header:hover {
-        background: #eeeeee;
-    }
-
-    .advice-section-header span.toggle-icon {
-        font-size: 1.2rem;
-        transition: transform 0.3s ease;
-    }
-
-    .advice-section-content {
-        max-height: 0;
-        padding: 0 20px;
-        overflow: hidden;
-        transition: max-height 0.4s ease-out, padding 0.4s ease-out;
-    }
-
-    .advice-section.active .advice-section-content {
-        max-height: 500px;
-        padding: 15px 20px;
-        border-top: 1px solid var(--border-color);
-    }
-
-    .advice-section.active .toggle-icon {
-        transform: rotate(90deg);
-    }
-
-    .advice-section-content ul {
-        margin: 0;
-        padding-left: 20px;
-        list-style: disc;
-    }
-
-    .advice-section-content li {
-        margin: 8px 0;
-        color: var(--text-secondary);
-    }
 </style>
 
 <div class="assistant-container">
-    <div class="intro-card">
-        <h2>🤖 Ваш личный консультант</h2>
-        <p>Выберите университет из списка, чтобы получить рекомендации:</p>
-
-        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
-            <span class="info-badge">📝 Подготовка к поступлению</span>
-            <span class="info-badge">💰 Финансирование</span>
-            <span class="info-badge">📚 Выбор программы</span>
-            <span class="info-badge">🎯 Карьерные перспективы</span>
+    <div class="chatbot-container" id="chatbotContainer">
+        <div class="chatbot-header">💬 Консультант (чат)</div>
+        <div class="chatbot-messages" id="chatbotMessages"></div>
+        <div class="chatbot-input-container">
+            <input type="text" id="chatbotInput" placeholder="Напишите вопрос..." />
+            <button onclick="sendMessage()">Отправить</button>
         </div>
     </div>
 
-    <div class="card">
-        <h3 style="margin-bottom: 20px; color: var(--green1);">📋 Список университетов</h3>
-
+    <div class="card" style="margin-top:30px;">
+        <h3 style="margin-bottom:20px; color: #1b5e20;">📋 Список университетов</h3>
         <div class="university-list">
             {% for u in universities %}
             <div class="university-item">
@@ -221,108 +160,119 @@ endblock %}
                     <div class="university-name">{{ u.name }}</div>
                     <div class="university-city">📍 {{ u.city }}</div>
                 </div>
-
-                <button class="btn" onclick="showAdvice('{{ u.name }}', '{{ u.city }}', {{ u.founded }})">
-                    💡 Получить советы
-                </button>
+                <button class="btn" onclick='showAdvice({{ u|tojson }}, this)'>💡 Получить советы</button>
             </div>
             {% endfor %}
         </div>
     </div>
 </div>
 
-<!-- Модалка -->
-<div id="adviceModal" class="advice-modal">
+<div id="adviceModal" class="advice-modal" aria-hidden="true">
     <div class="advice-content">
-        <span class="close" onclick="closeAdvice()"
-            style="float: right; font-size: 28px; cursor: pointer;">&times;</span>
-        <h2 id="advice-title" style="color: var(--green1); margin-bottom: 24px;"></h2>
+        <span class="close" onclick="closeAdvice()">&times;</span>
+        <h2 id="advice-title" style="color: #1b5e20; margin-bottom:24px;"></h2>
         <div id="advice-body"></div>
     </div>
 </div>
 
 <script>
-    function toggleAdvice(el) {
-        el.closest('.advice-section').classList.toggle('active');
-    }
+let messages = [];
+let lastButton = null;
 
-    function showAdvice(name, city, founded) {
-        document.getElementById('advice-title').textContent = "💡 Рекомендации: " + name;
+function toggleAdvice(el) { el.closest('.advice-section').classList.toggle('active'); }
 
-        const html = `
+function showAdvice(university, buttonEl) {
+    lastButton = buttonEl;
+    document.getElementById('advice-title').textContent = "💡 Рекомендации: " + university.name;
+    const html = `
         <div class="advice-section active">
-            <div class="advice-section-header" onclick="toggleAdvice(this)">
-                <h4>📝 Подготовка к поступлению</h4>
-                <span class="toggle-icon">▶</span>
-            </div>
-            <div class="advice-section-content">
-                <ul>
-                    <li>Начните подготовку за 6–12 месяцев.</li>
-                    <li>Изучите требования ЕНТ/КТ и IELTS/TOEFL.</li>
-                    <li>Подготовьте мотивационное письмо.</li>
-                    <li>Соберите рекомендации от учителей.</li>
-                </ul>
-            </div>
+            <div class="advice-section-header" onclick="toggleAdvice(this)"><h4>📝 Подготовка к поступлению</h4><span class="toggle-icon">▶</span></div>
+            <div class="advice-section-content"><ul>
+                <li>Начните подготовку за 6–12 месяцев.</li>
+                <li>Изучите требования ЕНТ/КТ и IELTS/TOEFL.</li>
+                <li>Подготовьте мотивационное письмо.</li>
+                <li>Соберите рекомендации от учителей.</li>
+            </ul></div>
         </div>
-
         <div class="advice-section">
-            <div class="advice-section-header" onclick="toggleAdvice(this)">
-                <h4>💰 Финансирование</h4>
-                <span class="toggle-icon">▶</span>
-            </div>
-            <div class="advice-section-content">
-                <ul>
-                    <li>Проверьте гранты и стипендии.</li>
-                    <li>Рассмотрите образовательные кредиты.</li>
-                    <li>Узнайте про подработку в городе ${city}.</li>
-                    <li>Спланируйте расходы на проживание.</li>
-                </ul>
-            </div>
+            <div class="advice-section-header" onclick="toggleAdvice(this)"><h4>💰 Финансирование</h4><span class="toggle-icon">▶</span></div>
+            <div class="advice-section-content"><ul>
+                <li>Проверьте гранты и стипендии.</li>
+                <li>Рассмотрите образовательные кредиты.</li>
+                <li>Узнайте про подработку в городе ${university.city}.</li>
+                <li>Спланируйте расходы на проживание.</li>
+            </ul></div>
         </div>
-
         <div class="advice-section">
-            <div class="advice-section-header" onclick="toggleAdvice(this)">
-                <h4>📚 Выбор программы</h4>
-                <span class="toggle-icon">▶</span>
-            </div>
-            <div class="advice-section-content">
-                <ul>
-                    <li>Изучите учебные планы.</li>
-                    <li>Посмотрите на преподавателей.</li>
-                    <li>Проверьте обменные программы.</li>
-                    <li>Посетите День открытых дверей.</li>
-                </ul>
-            </div>
+            <div class="advice-section-header" onclick="toggleAdvice(this)"><h4>📚 Выбор программы</h4><span class="toggle-icon">▶</span></div>
+            <div class="advice-section-content"><ul>
+                <li>Изучите учебные планы.</li>
+                <li>Посмотрите на преподавателей.</li>
+                <li>Проверьте обменные программы.</li>
+                <li>Посетите День открытых дверей.</li>
+            </ul></div>
         </div>
-
         <div class="advice-section">
-            <div class="advice-section-header" onclick="toggleAdvice(this)">
-                <h4>🎯 Карьерные перспективы</h4>
-                <span class="toggle-icon">▶</span>
-            </div>
-            <div class="advice-section-content">
-                <ul>
-                    <li>Изучите данные о трудоустройстве.</li>
-                    <li>Узнайте о стажировках.</li>
-                    <li>Рассмотрите научные проекты.</li>
-                    <li>Посмотрите компании-партнёры.</li>
-                </ul>
-            </div>
-        </div>
-        `;
+            <div class="advice-section-header" onclick="toggleAdvice(this)"><h4>🎯 Карьерные перспективы</h4><span class="toggle-icon">▶</span></div>
+            <div class="advice-section-content"><ul>
+                <li>Изучите данные о трудоустройстве.</li>
+                <li>Узнайте о стажировках.</li>
+                <li>Рассмотрите научные проекты.</li>
+                <li>Посмотрите компании-партнёры.</li>
+            </ul></div>
+        </div>`;
+    document.getElementById("advice-body").innerHTML = html;
+    document.getElementById("adviceModal").style.display = "block";
+    document.getElementById("adviceModal").setAttribute("aria-hidden", "false");
+}
 
-        document.getElementById("advice-body").innerHTML = html;
-        document.getElementById("adviceModal").style.display = "block";
-    }
+function closeAdvice() {
+    document.getElementById("adviceModal").style.display = "none";
+    document.getElementById("adviceModal").setAttribute("aria-hidden", "true");
+    if (lastButton) lastButton.focus();
+}
 
-    function closeAdvice() {
-        document.getElementById("adviceModal").style.display = "none";
-    }
+window.onclick = function(event) {
+    if (event.target === document.getElementById("adviceModal")) closeAdvice();
+}
 
-    window.onclick = function (event) {
-        if (event.target === document.getElementById("adviceModal")) {
-            closeAdvice();
+async function sendMessage() {
+    const inputEl = document.getElementById("chatbotInput");
+    const text = inputEl.value.trim();
+    if (!text) return;
+    addMessage("user", text);
+    inputEl.value = "";
+
+    try {
+        const response = await fetch("/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                messages: [...messages, { role: "user", content: text }],
+                universities_context: JSON.stringify({{ universities|tojson }})
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            addMessage("bot", data.reply);
+            messages.push({ role: "user", content: text });
+            messages.push({ role: "assistant", content: data.reply });
+        } else {
+            addMessage("bot", "⚠ Ошибка: " + data.reply);
         }
+    } catch (e) {
+        addMessage("bot", "⚠ Ошибка соединения с сервером.");
+        console.error(e);
     }
+}
+
+function addMessage(role, text) {
+    const msgEl = document.createElement("div");
+    msgEl.classList.add("chatbot-message", role);
+    msgEl.innerHTML = text.replace(/\n/g, "<br>");
+    const container = document.getElementById("chatbotMessages");
+    container.appendChild(msgEl);
+    container.scrollTop = container.scrollHeight;
+}
 </script>
 {% endblock %}
