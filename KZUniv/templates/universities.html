@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+{% block title %}Каталог университетов{% endblock %}
+{% block page_title %}Каталог университетов{% endblock %}
+{% block page_sub %}Выберите университет для подробной информации, добавляйте в избранное и сравнивайте{% endblock %}
+
+{% block content %}
+<style>
+    .university-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .university-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, var(--green1), var(--green2));
+    }
+
+    .university-card h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .university-info {
+        margin: 16px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .info-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .info-icon {
+        color: var(--green1);
+        font-weight: bold;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .btn-info {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .btn-fav {
+        background: var(--green3);
+        min-width: 140px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-fav.active {
+        background: #ffd700;
+        color: var(--green-dark);
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+    }
+
+    .btn-fav:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-compare {
+        background: #4a90e2;
+        color: white;
+        min-width: 140px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-compare.active {
+        background: #2ecc71;
+        font-weight: 600;
+        box-shadow: 0 2px 8px rgba(46, 204, 113, 0.4);
+    }
+
+    .btn-compare:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.6);
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 32px;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 700px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        animation: slideDown 0.3s ease;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .close:hover {
+        color: var(--green1);
+    }
+
+    .modal-content h2 {
+        color: var(--green1);
+        margin-bottom: 16px;
+    }
+
+    .modal-info-section {
+        margin: 20px 0;
+        padding: 16px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        border-left: 4px solid var(--green1);
+    }
+
+    .modal-info-section h3 {
+        color: var(--green-dark);
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+
+    .compare-banner {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #4a90e2, #357abd);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        display: none;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .compare-banner.show {
+        display: block;
+    }
+
+    .compare-banner-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .compare-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+
+    .btn-go-compare {
+        background: white;
+        color: #4a90e2;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+
+    .btn-go-compare:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 3000;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .notification.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .notification-success {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+    }
+
+    .notification-error {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+
+    .notification-info {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+</style>
+
+<div class="grid">
+    {% for univ in universities %}
+    <div class="card university-card">
+        <h3>🎓 {{ univ.name }}</h3>
+
+        <div class="university-info">
+            <div class="info-row">
+                <span class="info-icon">📍</span>
+                <span>{{ univ.city }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">📅</span>
+                <span>Основан в {{ univ.founded }} году</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">🏛️</span>
+                <span>{{ univ.type }}</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-info" onclick="showModal({{ univ.id }})">
+                📖 Подробнее
+            </button>
+            {% if current_user %}
+            <button class="btn btn-fav" onclick="toggleFav({{ univ.id }})" id="fav-btn-{{ univ.id }}">
+                ⭐ Добавить
+            </button>
+            <button class="btn btn-compare" onclick="toggleCompare({{ univ.id }})" id="compare-btn-{{ univ.id }}">
+                📊 Сравнить
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Compare Banner -->
+<div id="compareBanner" class="compare-banner">
+    <div class="compare-banner-content">
+        <div>
+            <div class="compare-count" id="compareCount">0 университетов</div>
+            <small>Максимум 5 университетов</small>
+        </div>
+        <button class="btn-go-compare" onclick="goToCompare()">
+            Перейти к сравнению →
+        </button>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="universityModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2 id="modal-title"></h2>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+    const universities = {{ universities | tojson }};
+    let compareCount = 0;
+
+    function showModal(univId) {
+        const univ = universities.find(u => u.id === univId);
+        if (!univ) return;
+
+        document.getElementById('modal-title').textContent = univ.name;
+        document.getElementById('modal-body').innerHTML = `
+        <div class="modal-info-section">
+            <h3>📍 Основная информация</h3>
+            <p><strong>Город:</strong> ${univ.city}</p>
+            <p><strong>Год основания:</strong> ${univ.founded}</p>
+            <p><strong>Тип:</strong> ${univ.type}</p>
+        </div>
+        
+        <div class="modal-info-section">
+            <h3>💰 Стоимость обучения</h3>
+            <p>${univ.tuition || 'Информация отсутствует'}</p>
+        </div>
+        
+        <div class="modal-info-section">
+            <h3>📝 Условия поступления</h3>
+            <p>${univ.admission || 'Информация отсутствует'}</p>
+        </div>
+        
+        <div class="modal-info-section">
+            <h3>🌍 Международные связи</h3>
+            <p>${univ.international_relations || 'Информация отсутствует'}</p>
+        </div>
+        
+        <div class="modal-info-section">
+            <h3>📚 Академические программы</h3>
+            <p>${univ.academic_programs || 'Информация отсутствует'}</p>
+        </div>
+        
+        <div class="modal-info-section">
+            <h3>🎯 Условия обучения</h3>
+            <p>${univ.conditions_of_study || 'Информация отсутствует'}</p>
+        </div>
+        
+        <div class="modal-info-section">
+            <h3>ℹ️ Дополнительная информация</h3>
+            <p>${univ.long_info || 'Информация отсутствует'}</p>
+        </div>
+    `;
+
+        document.getElementById('universityModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('universityModal').style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+        const modal = document.getElementById('universityModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
+
+    async function toggleFav(id) {
+        const btn = document.getElementById('fav-btn-' + id);
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/favourite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ university_id: id })
+            });
+            const data = await res.json();
+
+            if (data.status === 'added') {
+                btn.textContent = '⭐ В избранном';
+                btn.classList.add('active');
+                showNotification('Добавлено в избранное!', 'success');
+            } else {
+                btn.textContent = '⭐ Добавить';
+                btn.classList.remove('active');
+                showNotification('Удалено из избранного', 'info');
+            }
+        } catch (e) {
+            alert('Ошибка сети: ' + e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function toggleCompare(id) {
+        const btn = document.getElementById('compare-btn-' + id);
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/compare', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ university_id: id })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                showNotification(data.error || 'Произошла ошибка', 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            const data = await res.json();
+
+            if (data.status === 'added') {
+                btn.textContent = '✓ В сравнении';
+                btn.classList.add('active');
+                compareCount++;
+                showNotification('Добавлено в сравнение!', 'success');
+            } else {
+                btn.textContent = '📊 Сравнить';
+                btn.classList.remove('active');
+                compareCount--;
+                showNotification('Удалено из сравнения', 'info');
+            }
+
+            updateCompareBanner();
+        } catch (e) {
+            alert('Ошибка сети: ' + e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 2000);
+    }
+
+    function updateCompareBanner() {
+        const banner = document.getElementById('compareBanner');
+        const countEl = document.getElementById('compareCount');
+
+        if (compareCount > 0) {
+            banner.classList.add('show');
+            countEl.textContent = `${compareCount} ${compareCount === 1 ? 'университет' : compareCount < 5 ? 'университета' : 'университетов'}`;
+        } else {
+            banner.classList.remove('show');
+        }
+    }
+
+    function goToCompare() {
+        window.location.href = '/compare';
+    }
+
+    // Функция для загрузки состояния избранного и сравнения
+    async function loadUserStates() {
+        try {
+            const res = await fetch('/api/user-states');
+            const data = await res.json();
+
+            // Обновляем кнопки избранного
+            if (data.favourites) {
+                data.favourites.forEach(id => {
+                    const btn = document.getElementById('fav-btn-' + id);
+                    if (btn) {
+                        btn.textContent = '⭐ В избранном';
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            // Обновляем кнопки сравнения
+            if (data.compare) {
+                data.compare.forEach(id => {
+                    const btn = document.getElementById('compare-btn-' + id);
+                    if (btn) {
+                        btn.textContent = '✓ В сравнении';
+                        btn.classList.add('active');
+                    }
+                });
+                compareCount = data.compare.length;
+            }
+
+            updateCompareBanner();
+        } catch (e) {
+            console.error('Ошибка загрузки состояний:', e);
+        }
+    }
+
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function () {
+        loadUserStates();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Университеты{% endblock %}</title>
+    <style>
+        :root {
+            --green1: #2e7d32;
+            --green2: #66bb6a;
+            --green3: #81c784;
+            --green-dark: #1b5e20;
+            --text-dark: #1b1b1b;
+            --text-secondary: #424242;
+            --bg-light: #f5f7fa;
+            --muted: #666;
+            --btn-bg: var(--green1);
+            --btn-hover: var(--green2);
+            --card-shadow: rgba(46, 125, 50, 0.08);
+            --card-shadow-hover: rgba(46, 125, 50, 0.16);
+            --border-color: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--green2);
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--green1) 0%, var(--green-dark) 100%);
+            color: #fff;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        header .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        header .logo::before {
+            content: "🎓";
+            font-size: 1.8rem;
+        }
+
+        header nav {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        header nav a {
+            color: #fff;
+            font-weight: 500;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        header nav a:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        header nav span {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+        }
+
+        /* Main Content */
+        main {
+            flex: 1;
+            padding: 40px 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0 0 12px 0;
+            font-weight: 600;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: var(--green-dark);
+            margin-bottom: 8px;
+        }
+
+        /* Card Styles */
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 32px var(--card-shadow-hover);
+        }
+
+        .card h3 {
+            color: var(--green1);
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            margin: 8px 0;
+            color: var(--text-secondary);
+        }
+
+        /* Button Styles */
+        .btn {
+            background: var(--btn-bg);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: var(--btn-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--green3);
+        }
+
+        .btn-secondary:hover {
+            background: var(--green2);
+        }
+
+        /* Utility Classes */
+        .muted {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        /* Footer */
+        footer {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            text-align: center;
+            padding: 24px;
+            margin-top: 48px;
+            border-top: 2px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        footer strong {
+            color: var(--green-dark);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 16px;
+                padding: 16px;
+            }
+
+            header nav {
+                width: 100%;
+                justify-content: center;
+                gap: 12px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            main {
+                padding: 24px 16px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .card:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .card:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .card:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .card:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .card:nth-child(6) {
+            animation-delay: 0.6s;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+            <a href="{{ url_for('index') }}" class="logo">Университеты KZ</a>
+            <nav>
+                    <a href="{{ url_for('universities_page') }}">📚 Каталог</a>
+                    <a href="{{ url_for('assistant') }}">🤖 Помощник</a>         <a
+                href="{{ url_for('favorites') }}">⭐ Избранное</a>
+                    <a href="{{ url_for('compare') }}">⚖️ Сравнение</a>
+                    {% if current_user %}
+                        <span>Привет, <strong>{{ current_user }}</strong></span>
+                        <a href="{{ url_for('logout') }}">🚪 Выход</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}">🔑 Войти</a>
+                        <a href="{{ url_for('register') }}">📝 Регистрация</a>
+                    {% endif %}
+                </nav>
+    </header>
+    <main>
+            <h1>{% block page_title %}{% endblock %}</h1>
+            <p class="muted">{% block page_sub %}{% endblock %}</p>
+            {% block content %}{% endblock %}
+    </main>
+    <footer>
+            <strong>&copy; 2025 Университеты Казахстана</strong><br>
+            <span>Ваш проводник в мире высшего образования</span>
+    </footer>
+</body>
+
+</html>

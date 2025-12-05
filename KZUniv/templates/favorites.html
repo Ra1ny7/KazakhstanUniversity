@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block title %}Избранное{% endblock %}
+{% block page_title %}Избранное{% endblock %}
+{% block page_sub %}Ваши избранные университеты{% endblock %}
+
+{% block content %}
+<style>
+    .university-card {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .university-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #ffd700, #ffed4e);
+    }
+
+    .university-card h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .university-info {
+        margin: 16px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .info-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+    }
+
+    .info-icon {
+        color: #ffd700;
+        font-weight: bold;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .btn-remove {
+        background: #e74c3c;
+        color: white;
+        flex: 1;
+        min-width: 140px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-remove:hover {
+        background: #c0392b;
+        transform: translateY(-2px);
+    }
+
+    .btn-compare {
+        background: #4a90e2;
+        color: white;
+        min-width: 140px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-compare.active {
+        background: #2ecc71;
+        font-weight: 600;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-state-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+
+    .empty-state h3 {
+        color: #555;
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: #888;
+        margin-bottom: 20px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        font-weight: 600;
+        transition: transform 0.3s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 3000;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .notification.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .notification-success {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+    }
+
+    .notification-error {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+
+    .notification-info {
+        background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+</style>
+
+{% if universities %}
+<div class="grid">
+    {% for univ in universities %}
+    <div class="card university-card" id="card-{{ univ.id }}">
+        <h3>⭐ {{ univ.name }}</h3>
+
+        <div class="university-info">
+            <div class="info-row">
+                <span class="info-icon">📍</span>
+                <span>{{ univ.city }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">📅</span>
+                <span>Основан в {{ univ.founded }} году</span>
+            </div>
+            <div class="info-row">
+                <span class="info-icon">🏛️</span>
+                <span>{{ univ.type }}</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-remove" onclick="removeFromFavorites({{ univ.id }})">
+                ✕ Удалить из избранного
+            </button>
+            <button class="btn btn-compare" onclick="toggleCompare({{ univ.id }})" id="compare-btn-{{ univ.id }}">
+                📊 Сравнить
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ url_for('universities_page') }}" class="btn-primary">Добавить еще университеты</a>
+</div>
+
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">⭐</div>
+    <h3>Список избранного пуст</h3>
+    <p>Вы пока не добавили университеты в избранное. Перейдите в каталог и выберите интересующие вас университеты.</p>
+    <a href="{{ url_for('universities_page') }}" class="btn-primary">Перейти к каталогу</a>
+</div>
+{% endif %}
+
+<script>
+    async function removeFromFavorites(id) {
+        if (!confirm('Удалить этот университет из избранного?')) {
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/favourite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ university_id: id })
+            });
+            const data = await res.json();
+
+            if (data.status === 'removed') {
+                const card = document.getElementById('card-' + id);
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.9)';
+                card.style.transition = 'all 0.3s ease';
+
+                setTimeout(() => {
+                    location.reload();
+                }, 300);
+
+                showNotification('Удалено из избранного', 'info');
+            }
+        } catch (e) {
+            alert('Ошибка сети: ' + e);
+        }
+    }
+
+    async function toggleCompare(id) {
+        const btn = document.getElementById('compare-btn-' + id);
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/compare', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ university_id: id })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                showNotification(data.error || 'Произошла ошибка', 'error');
+                btn.disabled = false;
+                return;
+            }
+
+            const data = await res.json();
+
+            if (data.status === 'added') {
+                btn.textContent = '✓ В сравнении';
+                btn.classList.add('active');
+                showNotification('Добавлено в сравнение!', 'success');
+            } else {
+                btn.textContent = '📊 Сравнить';
+                btn.classList.remove('active');
+                showNotification('Удалено из сравнения', 'info');
+            }
+        } catch (e) {
+            alert('Ошибка сети: ' + e);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function loadCompareStates() {
+        try {
+            const res = await fetch('/api/user-states');
+            const data = await res.json();
+
+            if (data.compare) {
+                data.compare.forEach(id => {
+                    const btn = document.getElementById('compare-btn-' + id);
+                    if (btn) {
+                        btn.textContent = '✓ В сравнении';
+                        btn.classList.add('active');
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки состояний:', e);
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 2000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadCompareStates();
+    });
+</script>
+{% endblock %}
